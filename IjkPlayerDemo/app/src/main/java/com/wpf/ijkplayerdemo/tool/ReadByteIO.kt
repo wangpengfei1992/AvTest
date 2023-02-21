@@ -25,6 +25,10 @@ class ReadByteIO private constructor(): IAndroidIO {
             return instance!!
         }
     }
+    private lateinit var callBack:(LinkedBlockingDeque<Byte>)->Unit
+    public fun setCallBack(callBack:(LinkedBlockingDeque<Byte>)->Unit){
+        this.callBack = callBack
+    }
 
     private var TAG = ReadByteIO::class.java.simpleName
     private var flvData = LinkedBlockingDeque<Byte>()  // 内存队列，用于缓存获取到的流数据，要实现追帧效果，只需要根据策略丢弃本地缓存的内容即可
@@ -46,16 +50,18 @@ class ReadByteIO private constructor(): IAndroidIO {
 
     // 如果是播放本地文件，可在此处打开文件流，后续读取文件流即可
     override fun open(url: String?): Int {
+        Log.e(TAG, "open url： $url")
         if (url == URL_SUFFIX) {
+            callBack(flvData)
             return 1 // 打开播放流成功
         }
         return -1 // 打开播放流失败
     }
 
     override fun read(buffer: ByteArray?, size: Int): Int {
+        Log.e(TAG, "read size: $size")
         var tmpBytes = takeFirstWithLen(size) // 阻塞式读取，没有数据不渲染画面
         System.arraycopy(tmpBytes, 0, buffer, 0, size)
-        Log.e(TAG, "read size: $size")
         return size
     }
 
@@ -66,4 +72,7 @@ class ReadByteIO private constructor(): IAndroidIO {
     override fun close(): Int {
         return 0
     }
+
+
+
 }

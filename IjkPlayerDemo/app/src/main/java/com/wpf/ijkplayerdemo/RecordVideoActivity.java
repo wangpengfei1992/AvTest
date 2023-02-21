@@ -1,5 +1,6 @@
 package com.wpf.ijkplayerdemo;
 
+import android.content.res.AssetManager;
 import android.graphics.SurfaceTexture;
 import android.net.Uri;
 import android.os.Bundle;
@@ -11,8 +12,16 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.wpf.ijkplayerdemo.tool.ReadByteIO;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.concurrent.LinkedBlockingDeque;
 
+import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 
 /**
@@ -83,6 +92,64 @@ public class RecordVideoActivity extends AppCompatActivity implements TextureVie
         }
         player.prepareAsync();
         player.start();
+        ReadByteIO.Companion.getInstance().setCallBack(new Function1<LinkedBlockingDeque<Byte>, Unit>() {
+            @Override
+            public Unit invoke(LinkedBlockingDeque<Byte> bytes) {
+                readStringFromAssets(bytes);
+                return null;
+            }
+        });
     }
+
+    private void readStringFromAssets(LinkedBlockingDeque<Byte> byteDeque) {
+        //通过设备管理对象 获取Asset的资源路径
+        AssetManager assetManager = this.getApplicationContext().getAssets();
+
+        InputStream inputStream = null;
+        InputStreamReader isr = null;
+        BufferedReader br = null;
+
+        try{
+            inputStream = assetManager.open("child.h264");
+            isr = new InputStreamReader(inputStream);
+//            br = new BufferedReader(isr);
+            byte[] bytes = new byte[1024];
+
+            while(inputStream.read(bytes) > 0){
+                for (int t = 0; t < bytes.length; t++) {
+                    byteDeque.addLast(bytes[t]);
+                }
+//                bos.write(bytes,0,bytes.lenght);
+            }
+
+//            sb.append(br.readLine());
+//            String line = null;
+//            while((line = br.readLine()) != null){
+//                sb.append("\n" + line);
+//            }
+
+            br.close();
+            isr.close();
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (br != null) {
+                    br.close();
+                }
+                if (isr != null) {
+                    isr.close();
+                }
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+//        return sb.toString();
+    }
+
 }
 
